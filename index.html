@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!-- تم إضافة كلاس "dark" هنا بشكل دائم -->
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Video Prompt Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Roboto', 'Cairo', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+        #promptOutput, #translationOutput {
+            transition: all 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 relative">
+        
+        <!-- ============== App Header ============== -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-indigo-400">AI Video Prompt Generator</h1>
+            <p class="text-gray-400 mt-2">Enhance your idea into a visual prompt and get an instant Arabic translation.</p>
+        </div>
+
+        <!-- ============== Input Form ============== -->
+        <div class="space-y-6">
+            <div>
+                <label for="userInput" class="block text-lg font-semibold text-gray-200 mb-2">Describe your scene or idea:</label>
+                <textarea id="userInput" rows="3" class="w-full p-3 border border-gray-600 bg-gray-700 text-gray-50 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="Example: Kirby says 'خنزوري فينو'..." oninput="autoDir(this)"></textarea>
+            </div>
+
+            <!-- Action Button Container -->
+            <div class="space-y-3">
+                <button id="generateBtn" class="w-full bg-indigo-600 text-white font-bold text-lg py-3 px-4 rounded-lg hover:bg-indigo-500 active:scale-95 transition-transform duration-150 flex items-center justify-center space-x-2">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.572L16.5 21.75l-.398-1.178a3.375 3.375 0 00-2.455-2.456L12.75 18l1.178-.398a3.375 3.375 0 002.455-2.456L16.5 14.25l.398 1.178a3.375 3.375 0 002.455 2.456L20.25 18l-1.178.398a3.375 3.375 0 00-2.455 2.456z" /></svg>
+                    <span id="generateBtnText">Generate Prompt</span>
+                </button>
+            </div>
+             
+            <div id="messageArea" class="text-center text-sm text-red-400 h-5"></div>
+
+            <!-- ============== Output Section ============== -->
+            <div class="space-y-4">
+                <div>
+                    <label for="promptOutput" class="block text-lg font-semibold text-gray-200 mb-2">Generated Video Prompt:</label>
+                    <div id="promptOutput" class="w-full p-4 min-h-[120px] bg-gray-700/50 border border-gray-600 rounded-lg whitespace-pre-wrap text-gray-100" dir="ltr"></div>
+                </div>
+                <div>
+                    <label for="translationOutput" class="block text-lg font-semibold text-gray-200 mb-2">الترجمة العربية:</label>
+                    <div id="translationOutput" class="w-full p-4 min-h-[120px] bg-indigo-900/30 border border-indigo-800/50 rounded-lg whitespace-pre-wrap text-gray-100" dir="rtl"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // دالة لتحديد اتجاه النص تلقائياً
+        function autoDir(element) {
+            const arabicRegex = /[\u0600-\u06FF]/;
+            element.dir = arabicRegex.test(element.value) ? 'rtl' : 'ltr';
+        }
+
+        const generateBtn = document.getElementById('generateBtn');
+        const userInput = document.getElementById('userInput');
+        const promptOutput = document.getElementById('promptOutput');
+        const translationOutput = document.getElementById('translationOutput');
+        const messageArea = document.getElementById('messageArea');
+
+        // !!! تم إضافة مفتاح API الخاص بك هنا بناءً على طلبك !!!
+        // تحذير: لا تقم برفع هذا الكود على GitHub أو أي مكان عام آخر.
+        const API_KEY = "AIzaSyB71LIp6qUxqLBf1SwSqTjfed2LfKILd_Y"; 
+
+        async function callGemini(prompt, targetElement, loadingMessage) {
+            targetElement.textContent = loadingMessage;
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error.message || `Request failed with status ${response.status}`);
+                }
+                const data = await response.json();
+                if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+                    const resultText = data.candidates[0].content.parts[0].text;
+                    targetElement.textContent = resultText.trim();
+                    return resultText.trim();
+                } else {
+                    throw new Error('The model did not return valid content.');
+                }
+            } catch (error) {
+                console.error('API Error:', error);
+                targetElement.textContent = `Error: ${error.message}`;
+                messageArea.textContent = `An error occurred: ${error.message}`;
+                return null;
+            }
+        }
+        
+        async function performGeneration() {
+            if (!API_KEY) {
+                messageArea.textContent = 'Error: API Key is missing. Please add it in the code.';
+                return;
+            }
+            const userIdea = userInput.value.trim();
+            if (!userIdea) {
+                messageArea.textContent = 'Please enter an idea first.';
+                return;
+            }
+
+            setLoadingState(true);
+            messageArea.textContent = '';
+            translationOutput.textContent = '';
+            promptOutput.textContent = ''; // Clear previous prompt output
+
+            const promptInstruction = `
+As an expert in crafting prompts for AI video generators like Veo, enhance the following user idea into a short, visually descriptive prompt in English. The prompt should be a single, concise paragraph describing a scene.
+IMPORTANT RULES:
+1. The output MUST be in English.
+2. If the original idea contains any spoken words or dialogue in Arabic, keep the Arabic text as is but enclose it within double quotes ("").
+3. Focus on visual details: lighting, colors, camera angles (e.g., "cinematic shot", "wide angle", "close-up"), and action.
+User's Idea: "${userIdea}"`;
+
+            const englishPrompt = await callGemini(promptInstruction, promptOutput, 'Generating prompt...');
+            
+            if (englishPrompt) {
+                const translateInstruction = `Translate the following English text to Arabic. Provide only the translated text, without any additional explanations or formatting:\n\n"${englishPrompt}"`;
+                await callGemini(translateInstruction, translationOutput, 'جاري الترجمة...');
+            }
+            
+            setLoadingState(false);
+        }
+
+        function setLoadingState(isLoading) {
+            const btnTextEl = generateBtn.querySelector('span');
+            generateBtn.disabled = isLoading;
+            if (isLoading) {
+                generateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                btnTextEl.textContent = 'Generating...';
+            } else {
+                generateBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btnTextEl.textContent = 'Generate Prompt';
+            }
+        }
+
+        generateBtn.addEventListener('click', performGeneration);
+    </script>
+
+</body>
+</html>
